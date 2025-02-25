@@ -5,44 +5,51 @@ const cors = require('cors');
 //express instance
 const app = express();
 
+const PORT = process.env.PORT || 5000;  // Make sure this is NOT 3000
+
 //middleware to handle JSON data and CORS
 app.use(express.json());
 app.use(cors());
 
 //Connect to mongodb
-mongoose.connect('mongodb://localhost:27017/studentDB', { //CHANGE TO BB DATABASE!
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+mongoose.connect('mongodb://localhost:27017/BakerBuddyDB', {})
+//test connection
+.then(() => {
+    console.log("Connected to MongoDB");
+    
+    return RecipePage.create({ userId: 1, title: "Chocolate Cake", timerList: "testtimer", unitConversions: "testUnit" });
 });
 
-//Define simple schema for db data
-const studentSchema = new mongoose.Schema({
-    name: String,
-    age: Number
+//Define simple schema for recipe
+const recipeSchema = new mongoose.Schema({
+    userId: Number,
+    title: String,
+    timerList: String, //will probably make some kind of object w/ timer attrs
+    unitConversions: String //ditto.
 });
 
 //Create model based on schema
-const Student = mongoose.model('Student', studentSchema);
+const RecipePage = mongoose.model('RecipePage', recipeSchema);
 
-//Define GET route to get all students
-app.get('/api/students', async (req, res) => {
-    const students = await Student.find(); //pause fx until await code finishes
-    res.json(students); //send students as JSON response
+//Define GET route to get all recipePages
+app.get('/api/recipePages', async (req, res) => {
+    const recipePages = await RecipePage.find(); //pause fx until await code finishes
+    res.json(recipePages); //send recipePages as JSON response
 });
 
 //define post route to add new entity
-app.post('/api/students', async (req, res) => {
-    const newStudent = new Student(req.body); //gets studednt info from req body, stores in var
-    await newStudent.save();
-    res.json(newStudent);
+app.post('/api/recipePages', async (req, res) => {
+    const newRecipePage = new RecipePage(req.body); //gets studednt info from req body, stores in var
+    await newRecipePage.save();
+    res.json(newRecipePage);
 })
 
 //Define delete path
-app.delete('/api/students/:id', async (req, res) => {
-    await Student.findByIdAndDelete(req.params.id); //access id from url
-    res.json({ message: 'student deleted' });
+app.delete('/api/recipePages/:id', async (req, res) => {
+    await RecipePage.findByIdAndDelete(req.params.id); //access id from url
+    res.json({ message: 'recipePage deleted' });
 });
 
-app.listen(5000, () => {
-    console.log('Server running on http://localhost:5000');
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });
