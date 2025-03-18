@@ -8,6 +8,7 @@ const protect = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, "your_super_secret_key");
         req.user = decoded; //assigns decoded user id to req to use in future methods
+        req.userId = decoded.userId;
         next();
     } catch (error) {
         res.status(401).json({ message: "Invalid token" });

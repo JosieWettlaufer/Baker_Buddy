@@ -59,7 +59,41 @@ const loginUser = async (req, res) => {
     });
 };
 
+const deleteTimer = async(req, res) => {
+    const { timerId } = req.params; //get timer ID from URL
+    const userId = req.userId;
+
+    console.log("UserId from protect middleware:", req.userId);
+
+
+    try {
+        // Find the user by ID
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+          }
+
+        // Find the index of the timer to delete
+        const timerIndex = user.timers.findIndex(timer => timer._id.toString() === timerId);
+
+        if (timerIndex === -1) {
+            return res.status(404).json({ message: 'Timer not found' });
+        }
+
+        // Remove the timer from the timers array
+        user.timers.splice(timerIndex, 1);
+
+        // Save the updated user document
+        await user.save();
+
+        //return updated list of timers
+        res.status(200).json({ message: "Timer deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting timer:", error);
+        res.status(500).json({ message: "Server error, failed to delete timer" });
+    }
+};
 
 
 // Exporting the register and login functions so they can be used in other parts of the application
-module.exports = { registerUser, loginUser };
+module.exports = { registerUser, loginUser, deleteTimer };

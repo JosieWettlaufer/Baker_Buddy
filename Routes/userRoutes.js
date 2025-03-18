@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerUser, loginUser } = require('../controllers/userController');
+const { registerUser, loginUser, deleteTimer } = require('../controllers/userController');
 const protect = require('../middleware/authMiddleware');
 const router = express.Router();
 
@@ -56,5 +56,7 @@ router.get("/dashboard", protect, async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
+
+router.delete('/deleteTimer/:timerId', protect, deleteTimer);
 
 module.exports = router;
