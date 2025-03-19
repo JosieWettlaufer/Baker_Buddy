@@ -48,9 +48,14 @@ const loginUser = async (req, res) => {
     }
 
     // Generate a JWT token for the authenticated user
-    const token = jwt.sign({ id: user._id }, "your_super_secret_key", {
-        expiresIn: '1h' // Token expires in 1 hour
-    });
+    const token = jwt.sign(
+        {
+             id: user._id,
+             userId: user._id
+        }, 
+        process.env.JWT_SECRET, 
+        { expiresIn: '1h' } // Token expires in 1 hour
+    );
 
     // Send the token and user details in the response
     res.json({ 
@@ -61,9 +66,11 @@ const loginUser = async (req, res) => {
 
 const deleteTimer = async(req, res) => {
     const { timerId } = req.params; //get timer ID from URL
+
     const userId = req.userId;
 
-    console.log("UserId from protect middleware:", req.userId);
+    console.log("UserId in deleteTimer function:", userId);
+    console.log("TimerId to delete:", timerId);
 
 
     try {
@@ -87,7 +94,9 @@ const deleteTimer = async(req, res) => {
         await user.save();
 
         //return updated list of timers
-        res.status(200).json({ message: "Timer deleted successfully" });
+        res.status(200).json({ 
+            message: "Timer deleted successfully",
+            timers: user.timers });
     } catch (error) {
         console.error("Error deleting timer:", error);
         res.status(500).json({ message: "Server error, failed to delete timer" });
