@@ -9,50 +9,48 @@ require("dotenv").config();
 
 // Register a new user
 const registerUser = async (req, res) => {
-  //Gets user info from request body
-  const { username, email, password } = req.body;
+  // Extracts user info (username and password) from the request body
+  const { username, password } = req.body;
 
-  console.log("Registration request received:", { username, email });
+  console.log("Registration request received:", { username });
 
-  // Check if all required fields are provided
-  if (!username || !email || !password) {
+  // Check if both the username and password are provided
+  if (!username || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    // Check if a user with the same username or email already exists
-    const userExists = await User.findOne({ $or: [{ username }, { email }] });
+    // Check if a user with the same username already exists
+    const userExists = await User.findOne({ username }).select("_id"); // Returns only the _id field (not the entire document)
     if (userExists) {
       return res
         .status(400)
-        .json({ message: "Username or Email already exists" });
+        .json({ message: "Username already exists" }); // Respond if the username is already taken
     }
 
-    // Hash the password before storing it in the database
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Hash the password before storing it in the database for security
+    const salt = await bcrypt.genSalt(10); // Generates salt for hashing
+    const hashedPassword = await bcrypt.hash(password, salt); // Hashes the password
 
     // Create and save the new user in the database with an empty pages array
     const user = await User.create({
       username,
-      email,
-      password: hashedPassword,
-      pages: [], // Initialize with an empty pages array
+      password: hashedPassword, // Store the hashed password
+      pages: [], // Initialize with an empty pages array for the user
     });
 
-    console.log("User registered successfully:", user._id);
+    console.log("User registered successfully:", user._id); // Log the newly registered user's ID
 
-    // Send success response after user is registered
+    // Respond with success message and the registered user details
     res.status(201).json({
       message: "User registered successfully",
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
       },
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("Registration error:", error); // Log any errors
     res.status(500).json({
       message: "Registration failed",
       error: error.message,
@@ -62,38 +60,37 @@ const registerUser = async (req, res) => {
 
 // Login user and return JWT token
 const loginUser = async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password } = req.body; // Get user credentials from the request body
 
   try {
-    // Find user by username in the database
+    // Find the user by username in the database
     const user = await User.findOne({ username });
 
-    // Check if the user exists and if the provided password matches the hashed password
+    // Check if the user exists and if the provided password matches the stored hashed password
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Invalid credentials" }); // Invalid login credentials
     }
 
     // Generate a JWT token for the authenticated user
     const token = jwt.sign(
       {
-        id: user._id,
-        userId: user._id,
+        id: user._id, // User's ID in the token
+        userId: user._id, // Additional user ID field
       },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" } // Token expires in 1 hour
+      process.env.JWT_SECRET, // Secret key for JWT signing, stored in .env file
+      { expiresIn: "1h" } // Set token expiration to 1 hour
     );
 
-    // Send the token and user details in the response
+    // Send the JWT token and user details in the response
     res.json({
       token,
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login error:", error); // Log any errors
     res.status(500).json({
       message: "Login failed",
       error: error.message,
@@ -101,61 +98,65 @@ const loginUser = async (req, res) => {
   }
 };
 
-
-
+// Fetch user details and include their pages
 const getUser = async (req, res) => {
   try {
+    // Find the user by ID from the JWT token
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "User not found" }); // Return error if user not found
 
+    // Respond with the user's details and their associated pages
     res.json({
       message: `Welcome, user ${req.user.id}`,
-      pages: user.pages, // Include all the user's pages with their timers
+      pages: user.pages, // Include the user's pages (with timers and converters)
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
 
-
-
-//RECIPE PAGES
+// Add a new recipe page for the user
 const addRecipePage = async (req, res) => {
   try {
-    const { label } = req.body;
+    const { label } = req.body; // Get recipe label from the request body
 
+    // Ensure the label is provided
     if (!label) {
       return res
         .status(400)
         .json({ message: "Please provide a label for the recipe page" });
     }
 
+    // Find the user by ID from the JWT token
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Create a new page with an empty timers and unitConverters array
     const newPage = {
       label,
-      timers: [],
-      unitConverters: [],
+      timers: [], // Initialize with no timers
+      unitConverters: [], // Initialize with no unit converters
     };
 
+    // Push the new page to the user's pages array
     user.pages.push(newPage);
-    await user.save();
+    await user.save(); // Save the updated user
 
+    // Respond with success message and updated pages list
     res.json({
       message: "Recipe page added successfully",
       page: newPage,
       pages: user.pages,
     });
   } catch (error) {
-    console.error(error);
+    console.error(error); // Log any errors
     res.status(500).json({ message: "Server error", error });
   }
 };
 
-// Exporting the register and login functions so they can be used in other parts of the application
+// Exporting the functions for use in other parts of the application
 module.exports = {
   registerUser,
   loginUser,
