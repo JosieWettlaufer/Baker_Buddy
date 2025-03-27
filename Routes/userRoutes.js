@@ -1,33 +1,36 @@
 const express = require("express");
+
+//Import controller methods
 const {
   registerUser,
   loginUser,
-  addTimer,
   getUser,
-  deleteTimer,
   addRecipePage,
-  addUnitConverter,
-  getUnitConverters,
-  deleteUnitConverter,
-  updateUnitConverter,
 } = require("../controllers/userController");
+const { addTimer, deleteTimer } = require("../controllers/timerController");
+const { 
+    addUnitConverter, 
+    getUnitConverters, 
+    deleteUnitConverter, 
+    updateUnitConverter 
+} = require("../controllers/unitController");
+
 const protect = require("../middleware/authMiddleware");
 const router = express.Router();
 
+//UserController method routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-
 // User dashboard
 router.get("/dashboard", protect, getUser);
-
 // Recipe page routes
 router.post("/addPage", protect, addRecipePage);
 
-// Timer routes
+// TimerController method routes
 router.post("/addTimer", protect, addTimer);
 router.delete("/deleteTimer/:timerId", protect, deleteTimer);
 
-// Unit converter routes
+// UnitController method routes
 router.post("/pages/:pageId/unitConverters", protect, addUnitConverter);
 router.get("/pages/:pageId/unitConverters", protect, getUnitConverters);
 router.delete(
