@@ -1,9 +1,9 @@
 const dotenv = require("dotenv");
 const express = require("express");
-const connectDB = require('./config/db');
+const connectDB = require("./config/db");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const userRoutes = require('./Routes/userRoutes');
+const userRoutes = require("./Routes/userRoutes");
 
 dotenv.config();
 connectDB();
@@ -16,10 +16,8 @@ app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 //middleware to parse cookies from incoming requests
 app.use(cookieParser());
 
-
-
 //use auth routes defined in authRoutes.js file
-app.use('/api/users', userRoutes);
+app.use("/api/users", userRoutes);
 
 const PORT = process.env.PORT || 5690;
 
