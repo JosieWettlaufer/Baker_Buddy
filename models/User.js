@@ -8,17 +8,22 @@ const timerSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-//Experimente
+// Replace the current unitSchema with this enhanced version
 const unitSchema = new mongoose.Schema({
-  category: { type: String, required: true }
-})
+  category: { type: String, required: true },
+  fromUnit: { type: String, required: true },
+  toUnit: { type: String, required: true },
+  conversionFactor: { type: Number, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
 
-//Experimente
+
+// The recipePageSchema remains largely the same:
 const recipePageSchema = new mongoose.Schema({
   label: { type: String, required: true }, 
   timers: [timerSchema],
   unitConverters: [unitSchema]
-})
+});
 
 
 const userSchema = new mongoose.Schema({
@@ -29,7 +34,8 @@ const userSchema = new mongoose.Schema({
   //timers: [timerSchema] // List of timers [old code]
 });
 
-
+    
+    
 
 
 module.exports = mongoose.model('User', userSchema);
