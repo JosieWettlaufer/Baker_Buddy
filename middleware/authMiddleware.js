@@ -1,6 +1,16 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
+/**
+ * Middleware function to protect routes by verifying the user's JWT token.
+ * Looks for a token in the cookies or the Authorization header.
+ * If the token is valid, it sets the user data on the request object.
+ * 
+ * @param {Object} req - The request object, representing the HTTP request.
+ * @param {Object} res - The response object, representing the HTTP response.
+ * @param {Function} next - The next middleware function to pass control to.
+ * @returns {void} Calls the next middleware if the token is valid, or sends an error response if invalid.
+ */
 const protect = (req, res, next) => {
   try {
     // Look for token in cookies or Authorization header
