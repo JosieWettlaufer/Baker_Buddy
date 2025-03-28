@@ -6,6 +6,7 @@ const {
   loginUser,
   getUser,
   addRecipePage,
+  deleteRecipePage,
 } = require("../controllers/userController");
 const { addTimer, deleteTimer } = require("../controllers/timerController");
 const { 
@@ -25,6 +26,7 @@ router.post("/login", loginUser);
 router.get("/dashboard", protect, getUser);
 // Recipe page routes
 router.post("/addPage", protect, addRecipePage);
+router.delete("/deletePage/:pageId", protect, deleteRecipePage);
 
 // TimerController method routes
 router.post("/addTimer", protect, addTimer);

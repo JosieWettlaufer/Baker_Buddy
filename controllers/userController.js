@@ -1,165 +1,167 @@
-// Importing the User model to interact with the database
 const User = require("../models/User");
-// Importing JWT for authentication and token generation
 const jwt = require("jsonwebtoken");
-// Importing bcrypt for hashing passwords
 const bcrypt = require("bcryptjs");
-// Load environment variables from .env file
 require("dotenv").config();
 
-// Register a new user
+/**
+ * Registers a new user.
+ * @param {Object} req - The request object.
+ * @param {Object} req.body - The request body containing user details.
+ * @param {string} req.body.username - The desired username.
+ * @param {string} req.body.password - The user's password.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Sends a JSON response with registration status and user details.
+ */
 const registerUser = async (req, res) => {
-  // Extracts user info (username and password) from the request body
   const { username, password } = req.body;
-
   console.log("Registration request received:", { username });
 
-  // Check if both the username and password are provided
   if (!username || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    // Check if a user with the same username already exists
-    const userExists = await User.findOne({ username }).select("_id"); // Returns only the _id field (not the entire document)
+    const userExists = await User.findOne({ username }).select("_id");
     if (userExists) {
-      return res
-        .status(400)
-        .json({ message: "Username already exists" }); // Respond if the username is already taken
+      return res.status(400).json({ message: "Username already exists" });
     }
 
-    // Hash the password before storing it in the database for security
-    const salt = await bcrypt.genSalt(10); // Generates salt for hashing
-    const hashedPassword = await bcrypt.hash(password, salt); // Hashes the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create and save the new user in the database with an empty pages array
-    const user = await User.create({
-      username,
-      password: hashedPassword, // Store the hashed password
-      pages: [], // Initialize with an empty pages array for the user
-    });
+    const user = await User.create({ username, password: hashedPassword, pages: [] });
+    console.log("User registered successfully:", user._id);
 
-    console.log("User registered successfully:", user._id); // Log the newly registered user's ID
-
-    // Respond with success message and the registered user details
     res.status(201).json({
       message: "User registered successfully",
-      user: {
-        id: user._id,
-        username: user.username,
-      },
+      user: { id: user._id, username: user.username },
     });
   } catch (error) {
-    console.error("Registration error:", error); // Log any errors
-    res.status(500).json({
-      message: "Registration failed",
-      error: error.message,
-    });
+    console.error("Registration error:", error);
+    res.status(500).json({ message: "Registration failed", error: error.message });
   }
 };
 
-// Login user and return JWT token
+/**
+ * Logs in a user and returns a JWT token.
+ * @param {Object} req - The request object.
+ * @param {Object} req.body - The request body containing credentials.
+ * @param {string} req.body.username - The user's username.
+ * @param {string} req.body.password - The user's password.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Sends a JSON response with authentication token and user details.
+ */
 const loginUser = async (req, res) => {
-  const { username, password } = req.body; // Get user credentials from the request body
-
+  const { username, password } = req.body;
   try {
-    // Find the user by username in the database
     const user = await User.findOne({ username });
-
-    // Check if the user exists and if the provided password matches the stored hashed password
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(400).json({ message: "Invalid credentials" }); // Invalid login credentials
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Generate a JWT token for the authenticated user
     const token = jwt.sign(
-      {
-        id: user._id, // User's ID in the token
-        userId: user._id, // Additional user ID field
-      },
-      process.env.JWT_SECRET, // Secret key for JWT signing, stored in .env file
-      { expiresIn: "1h" } // Set token expiration to 1 hour
+      { id: user._id, userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
     );
 
-    // Send the JWT token and user details in the response
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-      },
-    });
+    res.json({ token, user: { id: user._id, username: user.username } });
   } catch (error) {
-    console.error("Login error:", error); // Log any errors
-    res.status(500).json({
-      message: "Login failed",
-      error: error.message,
-    });
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Login failed", error: error.message });
   }
 };
 
-// Fetch user details and include their pages
+/**
+ * Retrieves user details including their saved recipe pages.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Sends a JSON response with user pages.
+ */
 const getUser = async (req, res) => {
   try {
-    // Find the user by ID from the JWT token
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" }); // Return error if user not found
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Respond with the user's details and their associated pages
-    res.json({
-      message: `Welcome, user ${req.user.id}`,
-      pages: user.pages, // Include the user's pages (with timers and converters)
-    });
+    res.json({ message: `Welcome, user ${req.user.id}`, pages: user.pages });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
 
-// Add a new recipe page for the user
+/**
+ * Adds a new recipe page for the user.
+ * @param {Object} req - The request object.
+ * @param {Object} req.body - The request body containing the recipe label.
+ * @param {string} req.body.label - The label for the recipe page.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Sends a JSON response with the newly created page and updated pages list.
+ */
 const addRecipePage = async (req, res) => {
   try {
-    const { label } = req.body; // Get recipe label from the request body
-
-    // Ensure the label is provided
+    const { label } = req.body;
     if (!label) {
-      return res
-        .status(400)
-        .json({ message: "Please provide a label for the recipe page" });
+      return res.status(400).json({ message: "Please provide a label for the recipe page" });
     }
 
-    // Find the user by ID from the JWT token
     const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const newPage = { label, timers: [], unitConverters: [] };
+    user.pages.push(newPage);
+    await user.save();
+
+    res.json({ message: "Recipe page added successfully", page: newPage, pages: user.pages });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+/**
+ * Deletes a recipe page for the user.
+ * @param {Object} req - The request object.
+ * @param {Object} req.params - The request parameters.
+ * @param {string} req.params.pageId - The ID of the recipe page to delete.
+ * @param {Object} res - The response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated pages list after deletion.
+ */
+const deleteRecipePage = async (req, res) => {
+  const { pageId } = req.params;
+  const userId = req.userId;
+
+  console.log("UserId in deletePage function:", userId);
+  console.log("PageId to delete:", pageId);
+
+  try {
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Create a new page with an empty timers and unitConverters array
-    const newPage = {
-      label,
-      timers: [], // Initialize with no timers
-      unitConverters: [], // Initialize with no unit converters
-    };
+    // Find index of the page to delete from the server
+    const pageIndex = user.pages.findIndex(page => page._id.toString() === pageId);
 
-    // Push the new page to the user's pages array
-    user.pages.push(newPage);
-    await user.save(); // Save the updated user
+    // Check if page exists
+    if (pageIndex === -1) {
+      return res.status(400).json({ message: "Recipe page not found" });
+    }
 
-    // Respond with success message and updated pages list
-    res.json({
-      message: "Recipe page added successfully",
-      page: newPage,
-      pages: user.pages,
+    // Remove the page from the pages array
+    user.pages.splice(pageIndex, 1); // 1 = one element removed at page index
+
+    // Save changes
+    await user.save();
+
+    // Return success with updated array
+    res.status(200).json({
+      message: "Recipe page deleted successfully",
+      pages: user.pages
     });
   } catch (error) {
-    console.error(error); // Log any errors
-    res.status(500).json({ message: "Server error", error });
+    console.error("Error deleting page", error);
+    res.status(500).json({ message: "Server error, failed to delete page" });
   }
 };
 
-// Exporting the functions for use in other parts of the application
-module.exports = {
-  registerUser,
-  loginUser,
-  getUser,
-  addRecipePage,
-};
+module.exports = { registerUser, loginUser, getUser, addRecipePage, deleteRecipePage };
